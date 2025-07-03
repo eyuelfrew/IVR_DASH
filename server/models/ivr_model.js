@@ -7,6 +7,16 @@ const ivrMenuSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  featureCode: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  greeting: {
+    type: String,
+    required: true,
+    trim: true
+  },
   options: [{
     number: {
       type: String,

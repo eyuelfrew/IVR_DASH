@@ -3,66 +3,6 @@ const ami = require('../index').ami; // Import the AMI client from index.js
 const fs = require('fs');
 const path = require('path');
 const { writeFileWithSudo, reloadAsterisk } = require('../utils/sudo');
-// Create a new IVR menu
-const createMenu = async (req, res) => {
-  try {
-    const { name, options } = req.body;
-    
-
-    // Create new menu
-    const menu = new IVRMenu({
-      name,
-      options: options.map(option => ({
-        number: option.number,
-        queue: option.queue
-      }))
-    });
-
-    await menu.save();
-
-    // Update Asterisk configuration
-    const asteriskConfig = generateAsteriskConfig(menu);
-    const configPath = '/etc/asterisk/extensions_custom.conf';
-    
-    try {
-      // Write to extensions_custom.conf
-      await writeFileWithSudo(configPath, asteriskConfig);
-      console.log('Updated extensions_custom.conf');
-
-      // Reload Asterisk
-      await reloadAsterisk();
-      console.log('Asterisk reloaded successfully');
-
-      res.status(201).json({
-        menu,
-        message: 'IVR menu created and Asterisk configuration updated'
-      });
-    } catch (configError) {
-      // If config update fails, delete the menu from DB
-      await menu.deleteOne();
-      throw new Error(`Failed to update Asterisk configuration: ${configError.message}`);
-    }
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
-// Helper function to generate Asterisk configuration
-const generateAsteriskConfig = (menu) => {
-  let config = `[ivr_${menu.name}]
-  exten => _X.,1,NoOp(IVR Menu: ${menu.name})
-`;
-
-  menu.options.forEach(option => {
-    config += `  exten => ${option.number},1,NoOp(Option ${option.number})
-  same => n,Queue(${option.queue})
-`;
-  });
-
-  return config;
-};
-
-
 
 // Get all IVR menus
 const getAllMenus = async (req, res) => {
@@ -184,7 +124,6 @@ const deleteMenu = async (req, res) => {
 };
 
 module.exports = {
-  createMenu,
   getAllMenus,
   getMenuById,
   updateMenu,

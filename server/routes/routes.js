@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ivrController = require('../controllers/ivr_controller');
+const { createMenu, checkFeatureCode, checkFeatureCodeFromForm } = require('../controllers/createMenu');
 
 // Basic route
 router.get('/', (req, res) => {
@@ -15,20 +16,20 @@ router.get('/', (req, res) => {
 
 // IVR Menu Routes
 // Create a new IVR menu
-router.post('/menus', ivrController.createMenu);
+router.post('/ivr/create', createMenu);
 
 // Get all IVR menus
 router.get('/menus', ivrController.getAllMenus);
 
 // Get a single IVR menu by ID
-router.get('/menus/:id', ivrController.getMenuById);
+router.get('/ivr/menus/:id', ivrController.getMenuById);
 
 // Update an IVR menu
-router.put('/menus/:id', ivrController.updateMenu);
+router.put('/ivr/menus/:id', ivrController.updateMenu);
 
 // Delete an IVR menu
 router.delete('/menus/:id', ivrController.deleteMenu);
-
+router.get('/ivr/check-feature-code/:featureCode', checkFeatureCodeFromForm);
 // Error handling middleware
 router.use((err, req, res, next) => {
   console.error(err.stack);

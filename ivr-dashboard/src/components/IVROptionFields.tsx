@@ -1,65 +1,67 @@
-import React from 'react'
-import type { IVROption } from './types'
+import React from 'react';
+import type { IVROption } from './types';
 
-export default function IVROptionFields({
-  options,
-  setOptions,
-}: {
-  options: IVROption[]
-  setOptions: (opts: IVROption[]) => void
-}) {
-  const handleChange = (idx: number, field: keyof IVROption, value: string) => {
-    const updated = [...options]
-    updated[idx][field] = value
-    setOptions(updated)
-  }
+interface IVROptionFieldsProps {
+  options: IVROption[];
+  setOptions: (options: IVROption[]) => void;
+}
 
-  const addOption = () => setOptions([...options, { number: '', queue: '', action: 'queue', description: '' }])
-  const removeOption = (idx: number) => setOptions(options.filter((_, i) => i !== idx))
+const IVROptionFields: React.FC<IVROptionFieldsProps> = ({ options, setOptions }) => {
+  const handleOptionChange = (index: number, field: keyof IVROption, value: string) => {
+    const newOptions = [...options];
+    newOptions[index] = { ...newOptions[index], [field]: value };
+    setOptions(newOptions);
+  };
+
+  const addOption = () => {
+    setOptions([...options, { number: '', queue: '', action: 'queue', description: '' }]);
+  };
+
+  const removeOption = (index: number) => {
+    setOptions(options.filter((_, i) => i !== index));
+  };
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-2 text-gray-700">Menu Options</h3>
-      {options.map((opt, idx) => (
-        <div key={idx} className="grid grid-cols-4 gap-2 mb-3">
+      <h3 className="text-lg font-medium mb-2">Menu Options</h3>
+      {options.map((option, index) => (
+        <div key={index} className="flex space-x-2 mb-2">
           <input
-            className="border rounded px-2 py-1"
-            placeholder="Number (e.g. 1)"
-            value={opt.number}
-            onChange={e => handleChange(idx, 'number', e.target.value)}
+            type="number"
+            value={option.number}
+            onChange={(e) => handleOptionChange(index, 'number', e.target.value)}
+            placeholder="Option Number (e.g., 1)"
+            className="w-1/4 px-3 py-2 border rounded-md"
             required
           />
           <input
-            className="border rounded px-2 py-1"
-            placeholder="Queue (e.g. Sales)"
-            value={opt.queue}
-            onChange={e => handleChange(idx, 'queue', e.target.value)}
+            type="text"
+            value={option.queue}
+            onChange={(e) => handleOptionChange(index, 'queue', e.target.value)}
+            placeholder="Queue Name (e.g., sales_queue)"
+            className="w-1/2 px-3 py-2 border rounded-md"
             required
           />
-          <select
-            className="border rounded px-2 py-1"
-            value={opt.action}
-            onChange={e => handleChange(idx, 'action', e.target.value)}
-          >
-            <option value="queue">Queue</option>
-            <option value="extension">Extension</option>
-            <option value="voicemail">Voicemail</option>
-          </select>
-          <input
-            className="border rounded px-2 py-1"
-            placeholder="Description"
-            value={opt.description}
-            onChange={e => handleChange(idx, 'description', e.target.value)}
-          />
+          {options.length > 1 && (
+            <button
+              type="button"
+              onClick={() => removeOption(index)}
+              className="px-4 py-2 bg-red-200 text-red-700 rounded-md hover:bg-red-300"
+            >
+              Remove
+            </button>
+          )}
         </div>
       ))}
       <button
         type="button"
-        className="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 mt-2"
         onClick={addOption}
+        className="px-4 py-2 bg-green-200 text-green-700 rounded-md hover:bg-green-300 mt-2"
       >
-        + Add Option
+        Add Option
       </button>
     </div>
-  )
-}
+  );
+};
+
+export default IVROptionFields;
