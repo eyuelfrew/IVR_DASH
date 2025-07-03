@@ -7,7 +7,7 @@ export default function IVRMenuForm() {
   const [formData, setFormData] = useState({
     name: '',
     featureCode: '',
-    greeting: '',
+    greetings: [] as string[],
     options: [{ number: '', queue: '', action: 'queue', description: '' }],
   });
   const [recordings, setRecordings] = useState<string[]>([]);
@@ -47,6 +47,37 @@ export default function IVRMenuForm() {
     setSuccess('');
   };
 
+  // Handle adding a greeting
+  const addGreeting = (greeting: string) => {
+    if (greeting && !formData.greetings.includes(greeting)) {
+      setFormData({
+        ...formData,
+        greetings: [...formData.greetings, greeting],
+      });
+    }
+  };
+
+  // Handle removing a greeting
+  const removeGreeting = (index: number) => {
+    const newGreetings = [...formData.greetings];
+    newGreetings.splice(index, 1);
+    setFormData({
+      ...formData,
+      greetings: newGreetings,
+    });
+  };
+
+  // Handle reordering greetings
+  const moveGreeting = (fromIndex: number, toIndex: number) => {
+    const newGreetings = [...formData.greetings];
+    const [movedGreeting] = newGreetings.splice(fromIndex, 1);
+    newGreetings.splice(toIndex, 0, movedGreeting);
+    setFormData({
+      ...formData,
+      greetings: newGreetings,
+    });
+  };
+
   // Validate form data
   const validateForm = () => {
     if (!formData.name.trim()) return 'Menu name is required';
@@ -55,7 +86,7 @@ export default function IVRMenuForm() {
     }
     if (!formData.featureCode) return 'Feature code is required';
     if (!/^\d+$/.test(formData.featureCode)) return 'Feature code must be numeric';
-    if (!formData.greeting) return 'Greeting recording is required';
+    if (formData.greetings.length === 0) return 'At least one greeting is required';
     if (formData.options.length === 0) return 'At least one option is required';
     for (const option of formData.options) {
       if (!option.number || isNaN(parseInt(option.number)) || parseInt(option.number) < 0) {
@@ -98,7 +129,7 @@ export default function IVRMenuForm() {
     const ivrData = {
       name: formData.name,
       featureCode: formData.featureCode,
-      greeting: formData.greeting,
+      greetings: formData.greetings,
       options: formData.options.map((opt) => ({
         number: parseInt(opt.number),
         queue: opt.queue,
@@ -112,7 +143,7 @@ export default function IVRMenuForm() {
       setFormData({
         name: '',
         featureCode: '',
-        greeting: '',
+        greetings: [],
         options: [{ number: '', queue: '', action: 'queue', description: '' }],
       });
     } catch (err: unknown) {
@@ -186,28 +217,79 @@ export default function IVRMenuForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Select Greeting Recording</label>
-          <select
-            name="greeting"
-            value={formData.greeting}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border rounded-md"
-            required
-          >
-            <option value="">-- Select --</option>
-            {recordings.map((rec) => (
-              <option key={rec} value={rec}>
-                {rec}
-              </option>
-            ))}
-          </select>
-          {formData.greeting && (
-            <audio
-              controls
-              className="mt-2"
-              src={`http://localhost:3000/recordings/${formData.greeting}.wav`}
-            />
-          )}
+          <label className="block text-sm font-medium mb-1">Add Greeting Recording</label>
+          <div className="flex space-x-2">
+            <select
+              className="flex-1 px-3 py-2 border rounded-md"
+              onChange={(e) => {
+                const selectedGreeting = e.target.value;
+                if (selectedGreeting) {
+                  addGreeting(selectedGreeting);
+                  e.target.value = ''; // Reset the select
+                }
+              }}
+            >
+              <option value="">-- Select a greeting to add --</option>
+              {recordings
+                .filter(rec => !formData.greetings.includes(rec))
+                .map((rec) => (
+                  <option key={rec} value={rec}>
+                    {rec}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          {/* Selected Greetings List */}
+          <div className="mt-4 space-y-2">
+            <p className="text-sm font-medium">Greeting Sequence:</p>
+            {formData.greetings.length === 0 ? (
+              <p className="text-sm text-gray-500">No greetings added yet</p>
+            ) : (
+              <ul className="space-y-2">
+                {formData.greetings.map((greeting, index) => (
+                  <li key={`${greeting}-${index}`} className="flex items-center space-x-2 p-2 border rounded-md bg-gray-50">
+                    <span className="flex-1">{greeting}</span>
+                    <div className="flex space-x-1">
+                      {index > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => moveGreeting(index, index - 1)}
+                          className="p-1 text-gray-600 hover:text-gray-900"
+                          title="Move up"
+                        >
+                          ↑
+                        </button>
+                      )}
+                      {index < formData.greetings.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => moveGreeting(index, index + 1)}
+                          className="p-1 text-gray-600 hover:text-gray-900"
+                          title="Move down"
+                        >
+                          ↓
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeGreeting(index)}
+                        className="p-1 text-red-600 hover:text-red-900"
+                        title="Remove"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <audio
+                      controls
+                      className="h-8"
+                      src={`http://localhost:3000/recordings/${greeting}.wav`}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         <IVROptionFields options={formData.options} setOptions={handleOptionsChange} />
@@ -219,7 +301,7 @@ export default function IVRMenuForm() {
               setFormData({
                 name: '',
                 featureCode: '',
-                greeting: '',
+                greetings: [],
                 options: [{ number: '', queue: '', action: 'queue', description: '' }],
               })
             }
