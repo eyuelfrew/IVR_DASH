@@ -34,7 +34,7 @@ app.use('/api', router);
 // Asterisk AMI connection settings
 const ami = new AmiClient();
 const amiConfig = {
-  host: '10.42.0.1',
+  host: '192.168.1.3',
   port: 5038,
   username: 'manager',
   password: '12345678',

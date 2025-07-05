@@ -10,29 +10,39 @@ const Sidebar = () => {
         <span className="text-xl font-bold">IVR Manager</span>
       </div>
       <nav className="flex flex-col gap-2">
-        <a href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded transition-colors">
+        {/* <a href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded transition-colors">
           <FiGrid className="w-5 h-5" />
           <span className="font-medium">Dashboard</span>
-        </a>
-        <a href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded transition-colors">
+        </a> */}
+        <a href="/" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded transition-colors">
           <FiList className="w-5 h-5" />
-          <span className="font-medium">Flows</span>
+          <span className="font-medium">IVR List</span>
         </a>
-        <a href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded transition-colors">
+        <a href="/" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded transition-colors">
+          <FiList className="w-5 h-5" />
+          <span className="font-medium">Mics Application</span>
+        </a>
+
+        <a href="/system-recordings-upload" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded transition-colors">
+          <FiList className="w-5 h-5" />
+          <span className="font-medium">System Recordings</span>
+        </a>
+
+        {/* <a href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded transition-colors">
           <FiPhone className="w-5 h-5" />
           <span className="font-medium">Call Logs</span>
-        </a>
-        <a href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded transition-colors">
+        </a> */}
+        {/* <a href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded transition-colors">
           <FiSettings className="w-5 h-5" />
           <span className="font-medium">Settings</span>
-        </a>
+        </a> */}
       </nav>
-      <div className="mt-auto p-4 border-t">
+      {/* <div className="mt-auto p-4 border-t">
         <button className="flex items-center gap-2 w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded transition-colors">
           <FiLogOut className="w-5 h-5" />
           <span>Logout</span>
         </button>
-      </div>
+      </div> */}
     </aside>
   )
 }

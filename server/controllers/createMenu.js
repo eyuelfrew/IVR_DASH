@@ -30,7 +30,7 @@ const createMenu = async (req, res) => {
       }))
     });
     await menu.save();
-
+nod
     // Generate IVR + binding
     const configPath = '/etc/asterisk/extensions_custom.conf';
     const ivrConfig = generateAsteriskConfig(menu);

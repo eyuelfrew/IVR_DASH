@@ -3,6 +3,7 @@ import { FiPlus } from 'react-icons/fi'
 import { Routes, Route, Link } from 'react-router-dom'
 import IVRMenuForm from './components/IVRMenuForm'
 import IVRMenus from './components/IVRMenus'
+import SystemRecordings from './components/SystemRecordingUpload'
 
 const App = () => {
   return (
@@ -22,6 +23,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<IVRMenus />} />
               <Route path="/create-flow" element={<IVRMenuForm />} />
+              <Route path="/system-recordings-upload" element={<SystemRecordings />} />
             </Routes>
           </div>
         </main>
