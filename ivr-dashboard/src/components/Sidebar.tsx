@@ -1,4 +1,4 @@
-import { FiPhone, FiGrid, FiList, FiSettings, FiLogOut } from 'react-icons/fi'
+import { FiPhone, FiGrid, FiList, FiSettings, FiLogOut, FiMusic, FiUpload } from 'react-icons/fi'
 
 const Sidebar = () => {
   return (
@@ -23,9 +23,14 @@ const Sidebar = () => {
           <span className="font-medium">Mics Application</span>
         </a>
 
+        <a href="/system-recordings" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded transition-colors">
+          <FiMusic className="w-5 h-5" />
+          <span className="font-medium">Recordings List</span>
+        </a>
+
         <a href="/system-recordings-upload" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded transition-colors">
-          <FiList className="w-5 h-5" />
-          <span className="font-medium">System Recordings</span>
+          <FiUpload className="w-5 h-5" />
+          <span className="font-medium">Upload Recordings</span>
         </a>
 
         {/* <a href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded transition-colors">

@@ -1,0 +1,292 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { FiPlay, FiPause, FiTrash2, FiDownload, FiUpload } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+
+interface AudioFile {
+  _id: string;
+  originalName: string;
+  size: number;
+  url: string;
+  mimeType: string;
+}
+
+interface Recording {
+  _id: string;
+  name: string;
+  description: string;
+  audioFiles: AudioFile[];
+  createdAt: string;
+}
+
+const SystemRecordings: React.FC = () => {
+  const [recordings, setRecordings] = useState<Recording[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPlaying, setCurrentPlaying] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchRecordings();
+    
+    // Cleanup audio on component unmount
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const fetchRecordings = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:3000/api/audio/recordings');
+      const data = await response.json();
+      
+      if (data.success) {
+        setRecordings(data.data);
+      } else {
+        setError('Failed to fetch recordings');
+      }
+    } catch (err) {
+      setError('Error connecting to server');
+      console.error('Error fetching recordings:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const togglePlay = async (url: string) => {
+    try {
+      // If the same audio is already playing, pause it
+      if (audioRef.current && currentPlaying === url) {
+        if (isPlaying) {
+          audioRef.current.pause();
+          setIsPlaying(false);
+        } else {
+          await audioRef.current.play();
+          setIsPlaying(true);
+        }
+        return;
+      }
+
+      // Stop any currently playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      // Create new audio element
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      setCurrentPlaying(url);
+      setIsPlaying(true);
+
+      // Set up event listeners
+      audio.onloadedmetadata = () => {
+        setDuration(audio.duration);
+      };
+
+      audio.ontimeupdate = () => {
+        setCurrentTime(audio.currentTime);
+      };
+
+      audio.onended = () => {
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setCurrentPlaying(null);
+      };
+
+      audio.onpause = () => {
+        setIsPlaying(false);
+      };
+
+      audio.onplay = () => {
+        setIsPlaying(true);
+      };
+
+      // Start playing
+      await audio.play();
+
+    } catch (err) {
+      console.error('Playback error:', err);
+      setError(`Failed to play audio: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setIsPlaying(false);
+      setCurrentPlaying(null);
+    }
+  };
+
+  // Format time (seconds to MM:SS)
+  const formatTime = (timeInSeconds: number) => {
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this recording?')) {
+      try {
+        const response = await fetch(`http://localhost:3000/api/audio/recordings/${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (response.ok) {
+          setRecordings(recordings.filter(recording => recording._id !== id));
+        } else {
+          setError('Failed to delete recording');
+        }
+      } catch (err) {
+        setError('Error deleting recording');
+        console.error('Error deleting recording:', err);
+      }
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const formatDate = (dateString: string): string => {
+    return new Date(dateString).toLocaleString();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 text-red-600 bg-red-100 rounded">
+        {error}
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">System Recordings</h1>
+        <button
+          onClick={() => navigate('/system-recordings-upload')}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2"
+        >
+          <FiUpload className="w-4 h-4" />
+          Upload Recording
+        </button>
+      </div>
+
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Description
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Size
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Uploaded
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {recordings.map((recording) => (
+                <React.Fragment key={recording._id}>
+                  <tr className="bg-gray-50">
+                    <td colSpan={5} className="px-6 py-2 text-sm font-medium text-gray-900">
+                      {recording.name}
+                    </td>
+                  </tr>
+                  {recording.audioFiles.map((file) => {
+                    const audioUrl = `http://localhost:3000/recordings/${file.originalName}`;
+                    const isCurrentPlaying = currentPlaying === audioUrl;
+                    
+                    return (
+                      <tr key={file._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => togglePlay(audioUrl)}
+                              className="text-gray-600 hover:text-blue-600 p-1 rounded-full hover:bg-gray-100"
+                              aria-label={isPlaying && isCurrentPlaying ? 'Pause' : 'Play'}
+                            >
+                              {isPlaying && isCurrentPlaying ? <FiPause /> : <FiPlay />}
+                            </button>
+                            <div className="flex flex-col">
+                              <span>{file.originalName}</span>
+                              {isCurrentPlaying && (
+                                <span className="text-xs text-gray-400">
+                                  {formatTime(currentTime)} / {formatTime(duration)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {recording.description || 'No description'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatFileSize(file.size)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatDate(recording.createdAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex gap-2">
+                            <a
+                              href={file.url}
+                              download
+                              className="text-blue-600 hover:text-blue-900"
+                              title="Download"
+                            >
+                              <FiDownload className="w-5 h-5" />
+                            </a>
+                            <button
+                              onClick={() => handleDelete(recording._id)}
+                              className="text-red-600 hover:text-red-900"
+                              title="Delete"
+                            >
+                              <FiTrash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {recordings.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          No recordings found. Upload your first recording to get started.
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SystemRecordings;

@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useState, useCallback } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -6,7 +7,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 interface RecordingFile {
   id: string; // Unique ID for each selected file
   name: string; // File name (e.g., "welcome.wav")
-  // You might add actual File object or URL here if you were really uploading
+  originalFile: File; // The actual File object to be uploaded
 }
 
 interface RecordingFormData {
@@ -49,43 +50,23 @@ const DraggableFile: React.FC<DraggableFileProps> = ({ file, index, moveFile, on
       const dragIndex = item.index;
       const hoverIndex = index;
 
-      // Don't replace items with themselves
       if (dragIndex === hoverIndex) {
         return;
       }
 
-      // Determine rectangle on screen
       const hoverBoundingRect = ref.current?.getBoundingClientRect();
-
-      // Get vertical middle
       const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-
-      // Determine mouse position
       const clientOffset = monitor.getClientOffset();
-
-      // Get pixels to the top
       const hoverClientY = clientOffset!.y - hoverBoundingRect.top;
 
-      // Only perform the move when the mouse has crossed half of the items height
-      // When dragging downwards, only move when the cursor is below 50%
-      // When dragging upwards, only move when the cursor is above 50%
-
-      // Dragging downwards
       if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
         return;
       }
-
-      // Dragging upwards
       if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
         return;
       }
 
-      // Time to actually perform the action
       moveFile(dragIndex, hoverIndex);
-
-      // Note: we're mutating the monitor item here!
-      // Generally it's better to avoid mutations in render functions,
-      // but it's okay here for the sake of performance to avoid frequent state transfers.
       item.index = hoverIndex;
     },
   });
@@ -138,17 +119,21 @@ const SystemRecordings: React.FC = () => {
     if (value.trim()) setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
+  // ----- THIS IS THE CORRECTED FUNCTION -----
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray: RecordingFile[] = Array.from(e.target.files).map((file) => ({
-        id: URL.createObjectURL(file), // Use object URL as a unique ID for simplicity, in real app you might use file.name or a real UUID
+        id: `${file.name}-${file.lastModified}`, // A more stable unique ID
         name: file.name,
+        originalFile: file, // Store the actual File object
       }));
+
       setFormData((prev) => ({
         ...prev,
         selectedFiles: [...prev.selectedFiles, ...filesArray],
       }));
-      // Clear the file input after selecting files, allows re-selecting same files if needed
+      
+      // Clear the file input after selecting files
       e.target.value = '';
     }
   };
@@ -174,7 +159,7 @@ const SystemRecordings: React.FC = () => {
         return { ...prev, selectedFiles: newFiles };
       });
     },
-    [] // No dependencies, as it operates on the latest state via functional update
+    []
   );
 
   const handleRemoveSelectedFile = (id: string) => {
@@ -184,22 +169,39 @@ const SystemRecordings: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      console.log("--- Form Data Submitted ---");
-      console.log("Recording Name:", formData.name);
-      console.log("Description:", formData.description);
-      console.log("Arranged Sound Files:", formData.selectedFiles.map(file => ({
-        id: file.id,
-        name: file.name
-      })));
-      alert("Form data submitted! Check your browser's console for details.");
-      // Reset form after submission
+    if (!validateForm()) {
+      console.log("Form validation failed.", errors);
+      return;
+    }
+  
+    try {
+      console.log("--- Starting File Upload ---");
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('description', formData.description);
+      
+      // Now this will work correctly
+      formData.selectedFiles.forEach((file) => {
+        formDataToSend.append('audioFiles', file.originalFile, file.name);
+      });
+  
+      const response = await axios.post('http://localhost:3000/api/audio/upload', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+  
+      console.log("--- Upload Successful ---", response.data);
+      alert("Files uploaded successfully!");
+      
       setFormData({ name: '', description: '', selectedFiles: [] });
       setErrors({});
-    } else {
-      console.log("Form validation failed.", errors);
+      
+    } catch (error) {
+      console.error("Upload failed:", error);
+      alert("Failed to upload files. Please try again.");
     }
   };
 
@@ -260,8 +262,8 @@ const SystemRecordings: React.FC = () => {
                 type="file"
                 id="files"
                 name="files"
-                multiple // Allows multiple file selection
-                accept="audio/*" // Suggests audio files
+                multiple
+                accept="audio/*"
                 onChange={handleFileChange}
                 className={`mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
                   file:rounded-full file:border-0 file:text-sm file:font-semibold
