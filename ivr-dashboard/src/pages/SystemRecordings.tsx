@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiPlay, FiPause, FiTrash2, FiDownload, FiUpload } from 'react-icons/fi';
+import axios from 'axios';
+import { FiPlay, FiPause, FiTrash2, FiDownload, FiX, FiUpload } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 
 interface AudioFile {
@@ -44,16 +45,18 @@ const SystemRecordings: React.FC = () => {
   const fetchRecordings = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3000/api/audio/recordings');
-      const data = await response.json();
+      const response = await axios.get('http://localhost:3000/api/audio/recordings');
       
-      if (data.success) {
-        setRecordings(data.data);
+      if (response.data.success) {
+        setRecordings(response.data.data);
       } else {
         setError('Failed to fetch recordings');
       }
     } catch (err) {
-      setError('Error connecting to server');
+      const errorMessage = axios.isAxiosError(err) 
+        ? err.response?.data?.message || 'Error connecting to server'
+        : 'Error connecting to server';
+      setError(errorMessage);
       console.error('Error fetching recordings:', err);
     } finally {
       setLoading(false);
@@ -127,21 +130,50 @@ const SystemRecordings: React.FC = () => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this recording?')) {
+  const handleDeleteRecording = async (recordingId: string) => {
+    if (window.confirm('Are you sure you want to delete this recording and all its audio files? This action cannot be undone.')) {
       try {
-        const response = await fetch(`http://localhost:3000/api/audio/recordings/${id}`, {
-          method: 'DELETE',
+        await axios.delete(`http://localhost:3000/api/audio/recordings/${recordingId}`);
+        setRecordings(recordings.filter(recording => recording._id !== recordingId));
+      } catch (err) {
+        const errorMessage = axios.isAxiosError(err) 
+          ? err.response?.data?.message || 'Error deleting recording'
+          : 'Error deleting recording';
+        setError(errorMessage);
+        console.error('Error deleting recording:', err);
+      }
+    }
+  };
+
+  const handleDeleteAudioFile = async (recordingId: string, fileId: string, fileName: string) => {
+    if (window.confirm('Are you sure you want to delete this audio file? This action cannot be undone.')) {
+      try {
+        await axios.delete(`http://localhost:3000/api/audio/recordings/${recordingId}/files/${fileId}`, {
+          data: { fileName }
         });
         
-        if (response.ok) {
-          setRecordings(recordings.filter(recording => recording._id !== id));
-        } else {
-          setError('Failed to delete recording');
-        }
+       // Instead of using .filter(Boolean) at the end, which doesn't properly type narrow, use:
+setRecordings(recordings.map(recording => {
+    if (recording._id === recordingId) {
+      // If this was the last file, filter out this recording entirely
+      if (recording.audioFiles.length === 1) {
+        return undefined; // Will be filtered out
+      }
+      // Otherwise just remove the file
+      return {
+        ...recording,
+        audioFiles: recording.audioFiles.filter(file => file._id !== fileId)
+      };
+    }
+    return recording;
+  }).filter((recording): recording is Recording => recording !== undefined));
+
       } catch (err) {
-        setError('Error deleting recording');
-        console.error('Error deleting recording:', err);
+        const errorMessage = axios.isAxiosError(err) 
+          ? err.response?.data?.message || 'Error deleting audio file'
+          : 'Error deleting audio file';
+        setError(errorMessage);
+        console.error('Error deleting audio file:', err);
       }
     }
   };
@@ -213,8 +245,15 @@ const SystemRecordings: React.FC = () => {
               {recordings.map((recording) => (
                 <React.Fragment key={recording._id}>
                   <tr className="bg-gray-50">
-                    <td colSpan={5} className="px-6 py-2 text-sm font-medium text-gray-900">
-                      {recording.name}
+                    <td colSpan={5} className="px-6 py-2 text-sm font-medium text-gray-900 flex justify-between items-center">
+                      <span>{recording.name}</span>
+                      <button
+                        onClick={() => handleDeleteRecording(recording._id)}
+                        className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100"
+                        title="Delete this recording and all its files"
+                      >
+                        <FiTrash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                   {recording.audioFiles.map((file) => {
@@ -224,22 +263,34 @@ const SystemRecordings: React.FC = () => {
                     return (
                       <tr key={file._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={() => togglePlay(audioUrl)}
-                              className="text-gray-600 hover:text-blue-600 p-1 rounded-full hover:bg-gray-100"
-                              aria-label={isPlaying && isCurrentPlaying ? 'Pause' : 'Play'}
-                            >
-                              {isPlaying && isCurrentPlaying ? <FiPause /> : <FiPlay />}
-                            </button>
-                            <div className="flex flex-col">
-                              <span>{file.originalName}</span>
-                              {isCurrentPlaying && (
-                                <span className="text-xs text-gray-400">
-                                  {formatTime(currentTime)} / {formatTime(duration)}
-                                </span>
-                              )}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => togglePlay(audioUrl)}
+                                className="text-gray-600 hover:text-blue-600 p-1 rounded-full hover:bg-gray-100"
+                                aria-label={isPlaying && isCurrentPlaying ? 'Pause' : 'Play'}
+                              >
+                                {isPlaying && isCurrentPlaying ? <FiPause /> : <FiPlay />}
+                              </button>
+                              <div className="flex flex-col">
+                                <span>{file.originalName}</span>
+                                {isCurrentPlaying && (
+                                  <span className="text-xs text-gray-400">
+                                    {formatTime(currentTime)} / {formatTime(duration)}
+                                  </span>
+                                )}
+                              </div>
                             </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteAudioFile(recording._id, file._id, file.originalName);
+                              }}
+                              className="text-red-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50"
+                              title="Delete this audio file"
+                            >
+                              <FiX className="w-4 h-4" />
+                            </button>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -252,23 +303,14 @@ const SystemRecordings: React.FC = () => {
                           {formatDate(recording.createdAt)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex gap-2">
-                            <a
-                              href={file.url}
-                              download
-                              className="text-blue-600 hover:text-blue-900"
-                              title="Download"
-                            >
-                              <FiDownload className="w-5 h-5" />
-                            </a>
-                            <button
-                              onClick={() => handleDelete(recording._id)}
-                              className="text-red-600 hover:text-red-900"
-                              title="Delete"
-                            >
-                              <FiTrash2 className="w-5 h-5" />
-                            </button>
-                          </div>
+                          <a
+                            href={audioUrl}
+                            download
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Download"
+                          >
+                            <FiDownload className="w-5 h-5" />
+                          </a>
                         </td>
                       </tr>
                     );

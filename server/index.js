@@ -17,9 +17,9 @@ const path = require('path');
 const router = require('./routes/routes');
 // ✅ This serves the recordings
 app.use('/audio', express.static(path.join(__dirname, 'audio')));
-app.use('/recordings', express.static('/var/lib/asterisk/sounds/en/custome'))
+app.use('/recordings', express.static('/var/lib/asterisk/sounds/en/custom'))
 app.get('/recordings', (req, res) => {
-  const recordingsDir = '/var/lib/asterisk/sounds/en/custome'
+  const recordingsDir = '/var/lib/asterisk/sounds/en/custom'
   const files = fs.readdirSync(recordingsDir)
     .filter(f => f.endsWith('.wav') || f.endsWith('.gsm'))
     .map(f => f.replace(/\.(wav|gsm)$/, '')) // remove extension

@@ -93,7 +93,7 @@ const convertToAsteriskWav = (inputPath) => {
 // Function to move file to Asterisk directory with sudo, using original filename
 const moveToAsteriskDir = async (sourcePath, originalName) => {
   try {
-    const asteriskDir = '/var/lib/asterisk/sounds/en/custome';
+    const asteriskDir = '/var/lib/asterisk/sounds/en/custom';
     
     // Get the original filename without extension and add .wav
     const originalBaseName = path.basename(originalName, path.extname(originalName));
@@ -166,7 +166,7 @@ const uploadAudio = async (req, res) => {
             size: size,
             mimeType: 'audio/wav',
             // Update URL to point to the Asterisk directory
-            url: `/sounds/en/custome/${fileName}`,  // Web-accessible URL
+            url: `/sounds/en/custom/${fileName}`,  // Web-accessible URL
             order: audioFiles.length
           });
 

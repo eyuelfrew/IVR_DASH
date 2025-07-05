@@ -4,6 +4,7 @@ const ivrController = require('../controllers/ivr_controller');
 const { createMenu, checkFeatureCode, checkFeatureCodeFromForm } = require('../controllers/createMenu');
 const uploadAudio = require('../controllers/audio-controllers/uploadAudio');
 const { getRecordings, getRecordingById } = require('../controllers/audio-controllers/getRecordings');
+const deleteRecording = require('../controllers/audio-controllers/deleteRecording');
 
 // Basic route
 router.get('/', (req, res) => {
@@ -19,7 +20,9 @@ router.post('/audio/upload', uploadAudio);
 // Audio retrieval routes
 router.get('/audio/recordings', getRecordings);
 router.get('/audio/recordings/:id', getRecordingById);
-
+// Add these routes after your existing audio routes
+router.delete('/audio/recordings/:id', deleteRecording.deleteRecording);  // Delete entire recording
+router.delete('/audio/recordings/:recordingId/files/:fileId', deleteRecording.deleteAudioFile);
 // IVR Menu Routes
 // Create a new IVR menu
 router.post('/ivr/create', createMenu);
