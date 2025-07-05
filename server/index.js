@@ -16,9 +16,10 @@ const fs = require('fs')
 const path = require('path');
 const router = require('./routes/routes');
 // ✅ This serves the recordings
-app.use('/recordings', express.static('/var/lib/asterisk/sounds/en/custom'))
+app.use('/audio', express.static(path.join(__dirname, 'audio')));
+app.use('/recordings', express.static('/var/lib/asterisk/sounds/en/custome'))
 app.get('/recordings', (req, res) => {
-  const recordingsDir = '/var/lib/asterisk/sounds/en/custom'
+  const recordingsDir = '/var/lib/asterisk/sounds/en/custome'
   const files = fs.readdirSync(recordingsDir)
     .filter(f => f.endsWith('.wav') || f.endsWith('.gsm'))
     .map(f => f.replace(/\.(wav|gsm)$/, '')) // remove extension
@@ -34,7 +35,7 @@ app.use('/api', router);
 // Asterisk AMI connection settings
 const ami = new AmiClient();
 const amiConfig = {
-  host: '192.168.1.3',
+  host: '10.42.0.1',
   port: 5038,
   username: 'manager',
   password: '12345678',
