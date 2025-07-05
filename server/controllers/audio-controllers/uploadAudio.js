@@ -38,8 +38,8 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
-  limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit per file
-}).array('audioFiles', 10);
+  limits: { fileSize: 400 * 1024 * 1024 } // 20MB limit per file
+}).array('audioFiles', 100);
 
 // Function to convert audio to Asterisk-compatible WAV format
 const convertToAsteriskWav = (inputPath) => {

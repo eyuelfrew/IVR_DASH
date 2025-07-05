@@ -4,13 +4,13 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
 // --- Type Definitions ---
-interface RecordingFile {
+export interface RecordingFile {
   id: string; // Unique ID for each selected file
   name: string; // File name (e.g., "welcome.wav")
   originalFile: File; // The actual File object to be uploaded
 }
 
-interface RecordingFormData {
+export interface RecordingFormData {
   name: string;
   description: string;
   selectedFiles: RecordingFile[]; // Array of files chosen for this recording entry

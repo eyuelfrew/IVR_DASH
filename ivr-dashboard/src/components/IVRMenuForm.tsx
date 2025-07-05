@@ -1,70 +1,21 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
+import IVREntries from './ivr-componetns/IVREntries';
+import type { ErrorState, IVREntry, IVRState } from '../types/ivr';
+import axios from 'axios';
 
-
-// Function to generate a unique ID
-
-import { FiChevronUp, FiChevronDown, FiTrash2 } from 'react-icons/fi';
-interface IVREntry {
-  id: number;
-  type: string;
-  digit: string;
-  value: string;
-}
-
-interface DTMFOptions {
-  announcement: string;
-  timeout: number;
-  invalidRetries: number;
-  invalidRetryRecording: string;
-  timeoutRetries: number;
-}
-
-interface IVRState {
-  name: string;
-  description: string;
-  dtmf: DTMFOptions;
-  entries: IVREntry[];
-}
-
-interface ErrorState {
-  name?: string;
-  announcement?: string;
-  timeout?: string;
-  invalidRetries?: string;
-  timeoutRetries?: string;
-  [key: string]: string | undefined;
-}
-
-  const database = {
-    extensions: [
-      { id: 'ext101', name: 'Support Team (101)' },
-      { id: 'ext102', name: 'Sales Team (102)' },
-      { id: 'ext103', name: 'Billing (103)' },
-    ],
-    queues: [
-      { id: 'q1', name: 'Customer Support Queue' },
-      { id: 'q2', name: 'Sales Queue' },
-    ],
-    ivrs: [
-      { id: 'ivr1', name: 'Main Menu IVR' },
-      { id: 'ivr2', name: 'Support IVR' },
-    ],
-    recordings: [
-      { id: 'rec1', name: 'Welcome Message' },
-      { id: 'rec2', name: 'About INSA' },
-    ],
-  };
 
 const IVRMenuCreator = () => {
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  console.log("API", API);
   const [ivr, setIvr] = useState<IVRState>({
     name: '',
     description: '',
     dtmf: {
-      announcement: '',
+      announcement: {id: '', name: ''},
       timeout: 5,
       invalidRetries: 3,
-      invalidRetryRecording: '',
+      invalidRetryRecording: {id: '', name: ''},
       timeoutRetries: 3,
     },
     entries: [
@@ -72,6 +23,8 @@ const IVRMenuCreator = () => {
     ],
   });
   const [errors, setErrors] = useState<ErrorState>({});
+  const [systemRecordings, setSystemRecordings] = useState<Array<{_id: string, name: string}>>([]);
+  const [, setError] = useState<string | null>(null);
 
   const handleGeneralChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -81,32 +34,63 @@ const IVRMenuCreator = () => {
 
   const handleDTMFChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setIvr({
-      ...ivr,
-      dtmf: {
-        ...ivr.dtmf,
-        [name]: name === 'timeout' || name === 'invalidRetries' || name === 'timeoutRetries' ? Number(value) : value,
-      },
-    });
-    if (value.trim() || Number(value) >= 0) setErrors({ ...errors, [name]: '' });
+    
+    if (name === 'announcement') {
+      const selectedRecording = systemRecordings.find(rec => rec._id === value);
+      if (selectedRecording) {
+        setIvr(prev => ({
+          ...prev,
+          dtmf: {
+            ...prev.dtmf,
+            announcement: {
+              id: selectedRecording._id,
+              name: selectedRecording.name
+            }
+          }
+        }));
+      }
+    } else if (name === 'invalidRetryRecording') {
+      const selectedRecording = systemRecordings.find(rec => rec._id === value);
+      if (selectedRecording) {
+        setIvr(prev => ({
+          ...prev,
+          dtmf: {
+            ...prev.dtmf,
+            invalidRetryRecording: {
+              id: selectedRecording._id,
+              name: selectedRecording.name
+            }
+          }
+        }));
+      }
+    } else {
+      setIvr(prev => ({
+        ...prev,
+        dtmf: {
+          ...prev.dtmf,
+          [name]: value
+        }
+      }));
+    }
+  
+    // Clear error if field is being updated
+    if (errors[name as keyof ErrorState]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
   };
 
-
-
- 
- 
-
   const validateForm = () => {
-    const newErrors: ErrorState = {};
+    const newErrors: ErrorState= {};
     if (!ivr.name.trim()) newErrors.name = 'IVR name is required';
-    if (!ivr.dtmf.announcement.trim()) newErrors.announcement = 'Announcement is required';
+    if (!ivr.dtmf.announcement.name) newErrors.announcement = 'Announcement is required';
+    if (!ivr.dtmf.announcement.id) newErrors.announcement = 'Announcement is required';
     if (ivr.dtmf.timeout < 1) newErrors.timeout = 'Timeout must be at least 1 second';
     if (ivr.dtmf.invalidRetries < 1) newErrors.invalidRetries = 'Invalid retries must be at least 1';
     if (ivr.dtmf.timeoutRetries < 1) newErrors.timeoutRetries = 'Timeout retries must be at least 1';
-    ivr.entries.forEach((entry) => {
-      if (!entry.digit) newErrors[`digit_${entry.id}`] = 'Digit is required';
-      if (!entry.value) newErrors[`value_${entry.id}`] = 'Selection is required';
-    });
+    // ivr.entries.forEach((entry) => {
+    //   // if (!entry.digit) newErrors[`digit_${entry.id}`] = 'Digit is required';
+    //   // if (!entry.value) newErrors[`value_${entry.id}`] = 'Selection is required';
+    // });
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -120,6 +104,23 @@ const IVRMenuCreator = () => {
       }, 500);
     }
   };
+
+  const fetchSystemRecordings = async () => {
+    try {
+      const response = await axios.get(`${API}/api/audio/recordings`);
+      setSystemRecordings(response.data.data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching system recordings:', err);
+      setError('Failed to load system recordings. Please try again later.');
+      setSystemRecordings([]);
+    } finally {
+    }
+  };
+
+  useEffect(() => {
+    fetchSystemRecordings();
+  }, []);
 
   return (
     <div className="p-6 max-w-4xl mx-auto bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-lg">
@@ -170,14 +171,14 @@ const IVRMenuCreator = () => {
                 </label>
                 <select
                   name="announcement"
-                  value={ivr.dtmf.announcement}
+                  value={ivr.dtmf.announcement.id}
                   onChange={handleDTMFChange}
                   className={`mt-1 block w-full border rounded-md p-2 ${errors.announcement ? 'border-red-500' : 'border-gray-300'} focus:ring-indigo-500 focus:border-indigo-500`}
                   aria-label="Announcement recording"
                 >
                   <option value="">Select recording</option>
-                  {database.recordings.map((rec) => (
-                    <option key={rec.id} value={rec.id}>
+                  {systemRecordings.map((rec) => (
+                    <option key={rec._id} value={rec._id}>
                       {rec.name}
                     </option>
                   ))}
@@ -218,14 +219,14 @@ const IVRMenuCreator = () => {
                 <label className="block text-sm font-medium text-gray-700">Invalid Retry Recording</label>
                 <select
                   name="invalidRetryRecording"
-                  value={ivr.dtmf.invalidRetryRecording}
+                  value={ivr.dtmf.invalidRetryRecording.id}
                   onChange={handleDTMFChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
                   aria-label="Invalid retry recording"
                 >
                   <option value="">Select recording</option>
-                  {database.recordings.map((rec) => (
-                    <option key={rec.id} value={rec.id}>
+                  {systemRecordings.map((rec) => (
+                    <option key={rec._id} value={rec._id}>
                       {rec.name}
                     </option>
                   ))}
@@ -249,11 +250,11 @@ const IVRMenuCreator = () => {
             </div>
           </div>
         </div>
-                  <IVREntries
-                    entries={ivr.entries}
-                    setEntries={(newEntries: IVREntry[]) => setIvr((prev) => ({ ...prev, entries: newEntries }))}
-                  />
-        
+        <IVREntries
+        systemRecordings = {systemRecordings}
+          entries={ivr.entries}
+          setEntries={(newEntries: IVREntry[]) => setIvr((prev) => ({ ...prev, entries: newEntries }))}
+        />
         {/* Buttons */}
         <div className="flex justify-end space-x-4">
 
@@ -275,152 +276,3 @@ const IVRMenuCreator = () => {
 };
 
 export default IVRMenuCreator;
-
-
-
-
-interface EntryErrors {
-  [key: string]: string | null | undefined;
-}
-
-interface IVREntriesProps {
-  entries: IVREntry[];
-  setEntries: (entries: IVREntry[]) => void;
-}
-
-const IVREntries: React.FC<IVREntriesProps> = ({ entries, setEntries }) => {
-  const [errors, setErrors] = useState<EntryErrors>({});
-
-  const addEntry = () => {
-    const newEntry: IVREntry = { id: Date.now(), type: '', digit: '', value: '' };
-    setEntries([...entries, newEntry]);
-  };
-
-  const updateEntry = (id: number, field: keyof IVREntry, value: string) => {
-    const usedDigits = entries
-      .filter((entry) => entry.id !== id && entry.digit)
-      .map((entry) => entry.digit);
-
-    if (field === 'digit' && value && usedDigits.includes(value)) {
-      setErrors((prev) => ({ ...prev, [`digit_${id}`]: 'Digit already in use.' }));
-      return;
-    }
-
-    setEntries(
-      entries.map((entry) =>
-        entry.id === id ? { ...entry, [field]: value } : entry
-      )
-    );
-    setErrors((prev) => ({ ...prev, [`digit_${id}`]: undefined }));
-  };
-
-  const removeEntry = (id: number) => {
-    setEntries(entries.filter((entry) => entry.id !== id));
-  };
-
-  const getOptionsForType = (type: string) => {
-    return (database as any)[type + 's'] || [];
-  };
-
-  return (
-    <div className="p-4 sm:p-6 md:p-8  bg-gray-50">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-gray-800">
-          IVR Configuration
-        </h1>
-        <div className="mb-4">
-          <button
-            type="button"
-            onClick={addEntry}
-            className="px-5 py-2 bg-indigo-600 text-white font-semibold rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-            aria-label="Add new IVR entry"
-          >
-            + Add Entry
-          </button>
-        </div>
-        <div className="space-y-4">
-          {entries.map((entry) => (
-            <div
-              key={entry.id}
-              className="flex items-center gap-2 sm:gap-4 p-4 bg-white rounded-lg border border-gray-200"
-            >
-              <div className="flex-grow grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Digit Input */}
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={entry.digit}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (/^[0-9]?$/.test(value)) {
-                        updateEntry(entry.id, 'digit', value);
-                      }
-                    }}
-                    className={`w-full bg-gray-100 border-2 rounded-md p-2 text-gray-800 placeholder-gray-500 transition-colors ${
-                      errors[`digit_${entry.id}`]
-                        ? 'border-red-500 focus:ring-red-400'
-                        : 'border-transparent focus:border-indigo-500 focus:ring-indigo-400'
-                    } focus:ring-1 focus:bg-white`}
-                    placeholder="Digit"
-                    aria-label="Digit for entry"
-                  />
-                  {errors[`digit_${entry.id}`] && (
-                    <p className="text-red-600 text-xs mt-1 px-1 absolute">{errors[`digit_${entry.id}`]}</p>
-                  )}
-                </div>
-
-                {/* Type Select */}
-                <select
-                  value={entry.type}
-                  onChange={(e) => updateEntry(entry.id, 'type', e.target.value)}
-                  className="w-full bg-gray-100 border-2 border-transparent rounded-md p-2 text-gray-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 focus:bg-white transition-colors"
-                  aria-label="Select type for entry"
-                >
-                  <option value="">Select Type</option>
-                  {['extension', 'queue', 'ivr', 'recording'].map((type) => (
-                    <option key={type} value={type}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Value Select */}
-                <select
-                  value={entry.value}
-                  onChange={(e) => updateEntry(entry.id, 'value', e.target.value)}
-                  className="w-full bg-gray-100 border-2 border-transparent rounded-md p-2 text-gray-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 focus:bg-white transition-colors"
-                  aria-label="Select value for entry"
-                  disabled={!entry.type}
-                >
-                  <option value="">
-                    {entry.type ? `Select ${entry.type}` : 'Select Option'}
-                  </option>
-                  {getOptionsForType(entry.type).map((option: any) => (
-                    <option key={option.id} value={option.id}>
-                      {option.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Delete Button */}
-              <button
-                type="button"
-                onClick={() => removeEntry(entry.id)}
-                className="p-2 text-gray-500 rounded-md hover:bg-red-100 hover:text-red-600 transition-colors"
-                aria-label="Remove entry"
-              >
-                <FiTrash2 size={20} />
-              </button>
-            </div>
-          ))}
-          {entries.length === 0 && (
-            <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
-              <p className="text-gray-500">No entries. Click "+ Add Entry" to begin.</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
