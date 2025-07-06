@@ -1,4 +1,4 @@
-  const express = require('express');
+const express = require('express');
 const AmiClient = require('asterisk-ami-client');
 const cors = require('cors');
 const connectDB = require('./config/dbconfig');
@@ -27,8 +27,6 @@ app.get('/recordings', (req, res) => {
   res.json(files) // [ 'welcome-message', 'main-ivr', ... ]
 })
 
-
-
 // Use the routes
 app.use('/api', router);
 
@@ -54,27 +52,7 @@ app.get('/', (req, res) => {
   res.send('IVR Node.js server is running!');
 });
 
-// Create IVR menu
-// app.post('/ivr-menus', async (req, res) => {
-//   try {
-//     const { name, options } = req.body;
-//     const menu = new IVRMenu({ name, options });
-//     await menu.save();
-//     res.status(201).json(menu);
-//   } catch (err) {
-//     res.status(400).json({ error: err.message });
-//   }
-// });
 
-// // List IVR menus
-// app.get('/ivr-menus', async (req, res) => {
-//   try {
-//     const menus = await IVRMenu.find();
-//     res.json(menus);
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
 
 app.listen(port, () => {
   // Connect to database

@@ -3,7 +3,6 @@ const path = require('path');
 const fs = require('fs');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-const { v4: uuidv4 } = require('uuid');
 const AudioRecording = require('../../models/audioRecording');
 const { exec } = require('child_process');
 const util = require('util');
@@ -14,7 +13,7 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 // Configure storage for audio files
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const audioDir = path.join(__dirname, '../../../audio');
+    const audioDir = path.join(__dirname, '../../audio');
     if (!fs.existsSync(audioDir)) {
       fs.mkdirSync(audioDir, { recursive: true });
     }
