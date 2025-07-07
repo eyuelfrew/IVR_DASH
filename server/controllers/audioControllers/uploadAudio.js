@@ -26,11 +26,17 @@ const storage = multer.diskStorage({
 });
 
 // File filter to allow only audio files
+// Update the file filter to handle MP3 MIME types more flexibly
 const fileFilter = (req, file, cb) => {
   const filetypes = /wav|mp3|gsm|m4a|ogg|aac/;
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype);
-  cb(null, extname && mimetype);
+  const mimetype = file.mimetype.match(/audio\/.+/); // More lenient MIME type check for audio files
+  
+  if (extname && mimetype) {
+    return cb(null, true);
+  }
+  
+  cb(new Error('Only audio files are allowed (WAV, MP3, GSM, M4A, OGG, AAC)'));
 };
 
 // Initialize multer with configuration
@@ -155,17 +161,21 @@ const uploadAudio = async (req, res) => {
           // Convert to Asterisk-compatible WAV
           const { path: filePath, size } = await convertToAsteriskWav(file.path);
           
-          // Move to Asterisk directory with original filename
+          // Move to Asterisk directory with original filename but with .wav extension
           const asteriskPath = await moveToAsteriskDir(filePath, file.originalname);
           const fileName = path.basename(asteriskPath);
           
+          // Create a new filename with .wav extension
+          const baseName = path.basename(file.originalname, path.extname(file.originalname));
+          const newFileName = `${baseName}.wav`;
+          
           audioFiles.push({
-            originalName: file.originalname,
+            originalName: newFileName,  // Use the new .wav extension
             filePath: asteriskPath,  // Full server path for backend reference
             size: size,
             mimeType: 'audio/wav',
-            // Update URL to point to the Asterisk directory
-            url: `/sounds/en/custom/${fileName}`,  // Web-accessible URL
+            // Update URL to point to the Asterisk directory with .wav extension
+            url: `/sounds/en/custom/${newFileName}`,  // Web-accessible URL with .wav extension
             order: audioFiles.length
           });
 

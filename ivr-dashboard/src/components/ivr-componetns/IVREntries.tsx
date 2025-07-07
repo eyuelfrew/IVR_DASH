@@ -2,22 +2,14 @@ import { useState } from "react";
 import { FiTrash2 } from "react-icons/fi";
 const database = {
     extensions: [
-      { id: 'ext101', name: 'Support Team (101)' },
-      { id: 'ext102', name: 'Sales Team (102)' },
-      { id: 'ext103', name: 'Billing (103)' },
+      { id: '1002', name: 'Support Team (1002)' },
+      { id: '1006', name: 'Sales Team (1006)' },
     ],
     queues: [
-      { id: 'q1', name: 'Customer Support Queue' },
-      { id: 'q2', name: 'Sales Queue' },
+      { id: '2000', name: 'Customer Support Queue' },
+      { id: '3000', name: 'Sales Queue' },
     ],
-    ivrs: [
-      { id: 'ivr1', name: 'Main Menu IVR' },
-      { id: 'ivr2', name: 'Support IVR' },
-    ],
-    recordings: [
-      { id: 'rec1', name: 'Welcome Message' },
-      { id: 'rec2', name: 'About INSA' },
-    ],
+
   };
 interface EntryErrors {
     [key: string]: string | null | undefined;

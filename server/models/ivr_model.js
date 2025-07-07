@@ -29,8 +29,8 @@ const ivrMenuSchema = new mongoose.Schema({
       default: 3
     },
     invalidRetryRecording: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'AudioRecording'
+      type: String,
+      trim: true
     }
   },
   entries: [{
