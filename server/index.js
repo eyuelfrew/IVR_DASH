@@ -7,8 +7,6 @@ const mongoose = require('mongoose');
 const app = express();
 const port = 3000;
 
-
-
 app.use(cors());
 app.use(express.json()); // For parsing JSON bodies
 
@@ -33,7 +31,7 @@ app.use('/api', router);
 // Asterisk AMI connection settings
 const ami = new AmiClient();
 const amiConfig = {
-  host: '10.42.0.1',
+  host: '192.168.1.3',
   port: 5038,
   username: 'manager',
   password: '12345678',

@@ -7,37 +7,58 @@ const ivrMenuSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  featureCode: {
+  description: {
     type: String,
-    required: true,
     trim: true
   },
-  greetings: [{
+  announcement: [{
     type: String,
     required: true,
-    trim: true
   }],
-  options: [{
-    number: {
+  dtmf: {
+    timeout: {
+      type: Number,
+      default: 5
+    },
+    invalidRetries: {
+      type: Number,
+      default: 3
+    },
+    timeoutRetries: {
+      type: Number,
+      default: 3
+    },
+    invalidRetryRecording: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'AudioRecording'
+    }
+  },
+  entries: [{
+    digit: {
       type: String,
       required: true,
       trim: true
     },
-    queue: {
+    type: {
+      type: String,
+      required: true
+    },
+    value: {
       type: String,
       required: true,
       trim: true
+    },
+    label: {
+      type: String,
+      trim: true
     }
   }],
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
+
 });
 
 // Create indexes for better query performance
-ivrMenuSchema.index({ name: 1 });
-ivrMenuSchema.index({ 'options.number': 1 });
+ivrMenuSchema.index({ name: 1 }); 
+ivrMenuSchema.index({ 'entries.digit': 1 });
 
 const IVRMenu = mongoose.model('IVRMenu', ivrMenuSchema);
 

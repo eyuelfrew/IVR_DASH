@@ -4,7 +4,6 @@ import IVREntries from './ivr-componetns/IVREntries';
 import type { ErrorState, IVREntry, IVRState } from '../types/ivr';
 import axios from 'axios';
 
-
 const IVRMenuCreator = () => {
   const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   console.log("API", API);
@@ -24,7 +23,7 @@ const IVRMenuCreator = () => {
   });
   const [errors, setErrors] = useState<ErrorState>({});
   const [systemRecordings, setSystemRecordings] = useState<Array<{_id: string, name: string}>>([]);
-  const [, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleGeneralChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -95,13 +94,30 @@ const IVRMenuCreator = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (validateForm()) {
-      setTimeout(() => {
-        alert('IVR Menu Saved Successfully!');
-        console.log('IVR Data:', ivr);
-      }, 500);
+    if (!validateForm()) return;
+
+    try {
+      setSubmitting(true);
+
+      const response = await axios.post(`${API}/api/ivr/menu`, ivr, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.data) {
+        alert('IVR Menu created successfully!');
+        console.log('IVR Menu created:', response.data);
+        // Optionally reset the form or redirect
+        // resetForm();
+      }
+    } catch (error) {
+      console.error('Error creating IVR menu:', error);
+      alert('Failed to create IVR menu. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -109,11 +125,8 @@ const IVRMenuCreator = () => {
     try {
       const response = await axios.get(`${API}/api/audio/recordings`);
       setSystemRecordings(response.data.data);
-      setError(null);
     } catch (err) {
       console.error('Error fetching system recordings:', err);
-      setError('Failed to load system recordings. Please try again later.');
-      setSystemRecordings([]);
     } finally {
     }
   };
@@ -263,8 +276,9 @@ const IVRMenuCreator = () => {
               type="submit"
               className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
               aria-label="Save IVR"
+              disabled={submitting}
             >
-              Save IVR
+              {submitting ? 'Saving...' : 'Save IVR'}
             </button>
           </div>
         </div>
