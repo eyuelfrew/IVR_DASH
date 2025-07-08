@@ -4,7 +4,6 @@ const router = express.Router();
 
 const ivrRoutes = require('./ivrRoutes');
 const recordingRoutes = require('./recordingRoutes');
-
 router.use('/ivr', ivrRoutes);
 router.use('/audio', recordingRoutes);
 

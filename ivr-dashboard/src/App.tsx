@@ -4,6 +4,7 @@ import IVRMenuForm from './components/IVRMenuForm'
 import IVRMenus from './components/IVRMenus'
 import SystemRecordingUpload from './components/SystemRecordingUpload'
 import SystemRecordings from './pages/SystemRecordings'
+import MiscApplication from './pages/MiscApplication'
 
 const App = () => {
   return (
@@ -17,6 +18,7 @@ const App = () => {
               <Route path="/create-flow" element={<IVRMenuForm />} />
               <Route path="/system-recordings" element={<SystemRecordings />} />
               <Route path="/system-recordings-upload" element={<SystemRecordingUpload />} />
+              <Route path="/misc-applications" element={<MiscApplication />} />
             </Routes>
           </div>
         </main>

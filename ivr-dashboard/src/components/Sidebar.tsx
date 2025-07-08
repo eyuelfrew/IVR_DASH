@@ -32,11 +32,11 @@ const Sidebar = () => {
         </Link>
         
         <Link 
-          to="/mics-application" 
+          to="/misc-applications" 
           className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded transition-colors"
         >
           <FiList className="w-5 h-5" />
-          <span className="font-medium">Mics Application</span>
+          <span className="font-medium">Misc Application</span>
         </Link>
 
         <Link 
