@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiEdit, FiTrash, FiPlus, FiClock } from 'react-icons/fi'
+import { FiEdit, FiTrash, FiPlus } from 'react-icons/fi'
 import axios from 'axios'
 import type { IVROption } from './types'
 
